@@ -1,0 +1,3 @@
+﻿CREATE LOGIN [SEHAPC\Sergey]
+    FROM WINDOWS;
+
