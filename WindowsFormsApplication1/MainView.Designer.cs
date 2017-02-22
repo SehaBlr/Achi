@@ -92,6 +92,7 @@
             this.LoginText.Name = "LoginText";
             this.LoginText.Size = new System.Drawing.Size(128, 20);
             this.LoginText.TabIndex = 2;
+            this.LoginText.Text = "sehablr";
             // 
             // label2
             // 

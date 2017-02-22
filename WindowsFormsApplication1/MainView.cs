@@ -48,31 +48,24 @@ namespace WindowsFormsApplication1
             WebClient w = new WebClient();
             Stream data = w.OpenRead(new Uri("http://steamwebapi.azurewebsites.net/"));
             StreamReader reader = new StreamReader(data);
-            string htmlContent = reader.ReadToEnd();
-            // textBox2.Text = htmlContent;
+            string htmlContent = reader.ReadToEnd().ToLower();
             data.Close();
             reader.Close();
-            IHTMLDocument2 htmlDocument = (IHTMLDocument2)new mshtml.HTMLDocument();
-            IHTMLDocument2 allElementsDiv = (IHTMLDocument2)new mshtml.HTMLDocument();
-            htmlDocument.write(htmlContent);
-            IHTMLElementCollection allElements = htmlDocument.all;
-            IHTMLElementCollection divcontainer = null;
-            foreach (IHTMLElement element in allElements)
+            string findbeg = "<div style=\"margin-bottom: 75px\">";
+            string findend = "<div class=\"footer\">";
+            int ibeg = htmlContent.IndexOf(findbeg);
+            int iend = htmlContent.IndexOf(findend);
+            htmlContent = htmlContent.Substring(ibeg+34);
+            ibeg = htmlContent.IndexOf(findbeg);
+            htmlContent = htmlContent.Substring(0, ibeg);
+            testbox.Text = htmlContent;
+            IHTMLDocument2 htmlDocument = (IHTMLDocument2)new mshtml.HTMLDocument();// 1.создаем объект html
+            htmlDocument.write(htmlContent);                                        // 2.в объект html записываем код
+            IHTMLElementCollection allElements = htmlDocument.all;                  // 3.из кода вычленяем элементы HTML
+            foreach (IHTMLElement element in allElements)                           // 4.перебираем эти элементы
             {
-                if (element.className== "container body-content") {
-                    testbox.Text=element.innerHTML;
-                    allElementsDiv.write(element.innerHTML);
-                    divcontainer = allElementsDiv.all;
-                    break;
-                }
+                listBox1.Items.Add(element.tagName);
             }
-           /* if (divcontainer != null)
-            {
-                foreach (IHTMLAnchorElement element in divcontainer)
-                {
-
-                }
-            }*/
         }
 
     }
