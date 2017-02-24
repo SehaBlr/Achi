@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
@@ -28,6 +29,7 @@ namespace Achi
         public MainWindow()
         {
             InitializeComponent();
+            show_categories();
         }
         private void Button_Click(object sender, RoutedEventArgs e)
         {
@@ -107,6 +109,7 @@ namespace Achi
                 cmd.Parameters.AddWithValue("@id", i);
                 cmd.Parameters.AddWithValue("@interface", interfacename);
                 cmd.ExecuteNonQuery();
+                con.Close();
             }
         }
 
@@ -118,6 +121,35 @@ namespace Achi
             SqlCommand cmd2 = new SqlCommand("delete from Interface", con);
             cmd1.ExecuteNonQuery();
             cmd2.ExecuteNonQuery();
+            con.Close();
+        }
+        private void show_categories()
+        {
+            interfacename.Items.Clear();
+            SqlConnection con = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=E:\DEV\C#\Achi\Achi\achidb.mdf;Integrated Security=True;Connect Timeout=30");
+            try
+            {
+                con.Open();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+            try
+            {
+                SqlDataAdapter da = new SqlDataAdapter("SELECT * FROM interface", con);
+                DataSet ds = new DataSet();
+                da.Fill(ds, "interface");
+
+                interfacename.ItemsSource = ds.Tables[0].DefaultView;
+                interfacename.DisplayMemberPath = ds.Tables[0].Columns["interface"].ToString();
+                interfacename.SelectedValuePath = ds.Tables[0].Columns["id"].ToString();
+                con.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
         }
     }
 }
