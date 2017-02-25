@@ -188,5 +188,34 @@ namespace Achi
                 MessageBox.Show(ex.ToString());
             }
         }
+
+        private void interfacename_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+           // methodname.Items.Clear();
+            string inter = interfacename.SelectedValue.ToString();
+            SqlConnection con = new SqlConnection(dbconn);
+            try
+            {
+                con.Open();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+            try
+            {
+                SqlDataAdapter da = new SqlDataAdapter("SELECT id,method FROM method WHERE interfaceId=" + inter, con);
+                DataSet ds = new DataSet();
+                da.Fill(ds, "method");
+                methodname.ItemsSource = ds.Tables[0].DefaultView;
+                methodname.DisplayMemberPath = ds.Tables[0].Columns["method"].ToString();
+                methodname.SelectedValuePath = ds.Tables[0].Columns["id"].ToString();
+                con.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+        }
     }
 }
