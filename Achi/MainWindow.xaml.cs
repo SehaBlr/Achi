@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
@@ -28,6 +29,7 @@ namespace Achi
         const string baseurlsteam = "api.steampowered.com";
         const string dbconn = @"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=E:\DEV\C#\Achi\Achi\achidb.mdf;Integrated Security=True;Connect Timeout=30";
         int j;
+        int k;
         public MainWindow()
         {
             InitializeComponent();
@@ -52,7 +54,7 @@ namespace Achi
                 string steamId64 = "0";
             }
             txSteamId.Text = page;
-            parserDocumentation();
+           
         }
         private void parserDocumentation()
         {
@@ -73,6 +75,7 @@ namespace Achi
             ibeg = 0;
             cleandb();
             j = 1;
+            k = 1;
             int i = 1;
             SqlConnection con = new SqlConnection(dbconn);
             con.Open();
@@ -129,7 +132,7 @@ namespace Achi
                     if (len > 0)
                     {
                         parsdiv = parsdiv.Substring(endmth, len).Trim();
-                        listBox.Text = parsdiv;
+                        
                     } else { parsdiv = ""; }
                     /*Здесь будет парсер метода с версией*/
                     int ibeg = methoddiv.IndexOf("/"+ interfacename+"/")+2+interfacename.Length;
@@ -142,9 +145,100 @@ namespace Achi
                     cmd.Parameters.AddWithValue("@interface", i);
                     cmd.ExecuteNonQuery();
                     con.Close();
+                    int methodid = j;
                     j++;
                     // конец парсера метода с версией
                     begmth = parsdiv.IndexOf(findbeg);
+                    // начинаем парсить таблцу паратемтров
+                    string parametrdiv = methoddiv;
+                    int begparam = parametrdiv.IndexOf("<tbody");
+                    // int endparam = parametrdiv.IndexOf("</tbody");
+                    int countp = 1;
+                    int paramid = 1;
+                    int Req = 1;
+                    if (begparam >1)
+                    {
+                        do
+                        {
+                            
+                            parametrdiv = parametrdiv.Substring(begparam).Trim();
+                            //-- вычленяем строки таблицы
+                            listBox.Text = parametrdiv;
+
+                            //1//
+                            int ibedtd = parametrdiv.IndexOf("<td>") + 4;
+                            int iendtd = parametrdiv.IndexOf("</td>");
+                            string param = parametrdiv.Substring(ibedtd, iendtd - ibedtd);
+
+                            parametrdiv = parametrdiv.Substring(iendtd + 3);
+                            iendtd = parametrdiv.IndexOf("</td>");
+                            parametrdiv = parametrdiv.Substring(iendtd + 3);
+                            ibedtd = parametrdiv.IndexOf("<td>") + 4;
+                            iendtd = parametrdiv.IndexOf("</td>");
+                            string request = parametrdiv.Substring(ibedtd, iendtd - ibedtd);
+                            if (request.IndexOf("success") > 0) { Req = 1; } else { Req = 0; }
+                            listBox.Text = param + " / " + request;
+                            //конец парсинга таблицы
+                            // insert в таблицы
+                            //
+                            SqlConnection conr = new SqlConnection(dbconn);
+                            //conr.Open();
+                            SqlCommand cmdr = new SqlCommand();
+                            //"", con
+                            SqlDataReader reader;
+                            cmdr.CommandText = "select isNull(max(p.id), (select isNull(max(p.id), 0) + 1 from parametr as p)),count(*) from parametr as p  where p.parametr ='" + param + "'";
+                            cmdr.CommandType = CommandType.Text;
+                            cmdr.Connection = conr;
+                            conr.Open();
+                            reader = cmdr.ExecuteReader();
+                            if (reader.HasRows)
+                            {
+                                reader.Read();
+                                paramid = reader.GetInt32(0);
+                                countp = reader.GetInt32(1);
+                            }
+
+                            conr.Close();
+
+
+                            if (countp != 0) {
+                                conr = new SqlConnection(dbconn);
+                                conr.Open();
+                                cmdr = new SqlCommand("insert into methodstr (Id,idmethod,idparametr,Required) values (@id,@methodid,@paramid,@req)", conr);
+                                cmdr.Parameters.AddWithValue("@id", k);
+                                cmdr.Parameters.AddWithValue("@methodid", methodid);
+                                cmdr.Parameters.AddWithValue("@paramid", paramid);
+                                cmdr.Parameters.AddWithValue("@req", Req);
+                                cmdr.ExecuteNonQuery();
+                                conr.Close();
+                            }
+                            else
+                            {
+                                conr = new SqlConnection(dbconn);
+                                conr.Open();
+                                cmdr = new SqlCommand("insert into parametr (id,parametr)  values (@paramid,@param)", conr);
+                                cmdr.Parameters.AddWithValue("@paramid", paramid);
+                                cmdr.Parameters.AddWithValue("@param", param);
+                                cmdr.ExecuteNonQuery();
+                                conr.Close();
+
+                                conr = new SqlConnection(dbconn);
+                                conr.Open();
+                                cmdr = new SqlCommand("insert into methodstr (Id,idmethod,idparametr,Required) values (@id,@methodid,@paramid,@req)", conr);
+                                cmdr.Parameters.AddWithValue("@id", k);
+                                cmdr.Parameters.AddWithValue("@methodid", methodid);
+                                cmdr.Parameters.AddWithValue("@paramid", paramid);
+                                cmdr.Parameters.AddWithValue("@req", Req);
+                                cmdr.ExecuteNonQuery();
+                                conr.Close();
+                            }
+                            k++;
+                            begparam = parametrdiv.IndexOf("<tr>");
+                        } while (begparam!=-1);
+
+                        //
+                        
+                    }
                 } while (begmth != -1);
             }
         }
@@ -156,9 +250,11 @@ namespace Achi
             SqlCommand cmd1 = new SqlCommand("delete from testres", con);
             SqlCommand cmd2 = new SqlCommand("delete from Interface", con);
             SqlCommand cmd3 = new SqlCommand("delete from Method", con);
+            SqlCommand cmd4 = new SqlCommand("delete from Methodstr", con);
             cmd1.ExecuteNonQuery();
             cmd2.ExecuteNonQuery();
             cmd3.ExecuteNonQuery();
+            cmd4.ExecuteNonQuery();
             con.Close();
         }
         private void show_categories()
@@ -217,5 +313,12 @@ namespace Achi
                 MessageBox.Show(ex.ToString());
             }
         }
+
+        private void Parser_Click(object sender, RoutedEventArgs e)
+        {
+            parserDocumentation();
+        }
+
+
     }
 }
